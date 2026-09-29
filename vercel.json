@@ -40,7 +40,7 @@
   "crons": [
     {
       "path": "/api/cron/advance-jobs",
-      "schedule": "*/1 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
