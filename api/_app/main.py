@@ -298,10 +298,11 @@ def export_to_sheets(job_id: str, request: Request):
 # ---------------------------------------------------------------------------
 
 
-@app.post("/api/cron/advance-jobs")
+@app.get("/api/cron/advance-jobs")
 def cron_advance_jobs(request: Request):
     if settings.CRON_SECRET:
-        if request.headers.get("x-cron-secret") != settings.CRON_SECRET:
+        auth_header = request.headers.get("authorization")
+        if not auth_header or auth_header != f"Bearer {settings.CRON_SECRET}":
             raise HTTPException(status_code=401, detail="Invalid cron secret.")
 
     advanced = []
