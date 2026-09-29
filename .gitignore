@@ -13,3 +13,5 @@ Consolidated_Test_Output.xlsx
 Consolidated_Output.xlsx
 *.xlsx.tmp
 .DS_Store
+
+.vercel

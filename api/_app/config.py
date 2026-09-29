@@ -2,7 +2,15 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
+try:
+    from dotenv import load_dotenv
+    # Load .env from the parent directory (project root)
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    load_dotenv(dotenv_path=env_path)
+except ImportError:
+    pass
 
 def _get(name: str, default: str | None = None) -> str | None:
     return os.environ.get(name, default)
