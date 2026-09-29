@@ -36,11 +36,13 @@ def test_multiple_directors_preserve_positional_alignment():
         )
     ]
     rows = build_consolidated_rows(master, {"file-1": cf}, matches)
-    assert len(rows) == 1
-    row = rows[0]
-    assert row.director_name == "Rahul Sharma; Amit Patel"
-    assert row.director_email == "rahul@example.com; amit@example.com"
-    assert row.director_contact_numbers == "9876543210; 9823456789"
+    assert len(rows) == 2
+    assert rows[0].director_name == "Rahul Sharma"
+    assert rows[0].director_email == "rahul@example.com"
+    assert rows[0].director_contact_numbers == "9876543210"
+    assert rows[1].director_name == "Amit Patel"
+    assert rows[1].director_email == "amit@example.com"
+    assert rows[1].director_contact_numbers == "9823456789"
 
 
 def test_missing_email_leaves_blank_slot_without_shifting():
@@ -67,8 +69,11 @@ def test_missing_email_leaves_blank_slot_without_shifting():
         )
     ]
     rows = build_consolidated_rows(master, {"file-1": cf}, matches)
-    assert rows[0].director_email == "; amit@example.com"
-    assert rows[0].director_name == "Rahul Sharma; Amit Patel"
+    assert len(rows) == 2
+    assert rows[0].director_email == ""
+    assert rows[1].director_email == "amit@example.com"
+    assert rows[0].director_name == "Rahul Sharma"
+    assert rows[1].director_name == "Amit Patel"
 
 
 def test_unmatched_company_gets_no_director_data():

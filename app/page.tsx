@@ -8,14 +8,12 @@ import MatchTable from "@/components/MatchTable";
 
 const DEFAULT_COLUMNS = [
   "Company Name",
-  "Director Name",
-  "Director Email",
-  "Director Contact Numbers",
-  "Net Profit",
-  "Revenue",
+  "Email",
+  "Name",
+  "Contact Number",
+  "Total Revenue *",
   "EBITDA",
-  "City",
-  "Company Products",
+  "PAT",
 ];
 
 export default function Home() {

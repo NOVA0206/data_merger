@@ -30,33 +30,46 @@ def build_consolidated_rows(
     for rec in master_records:
         matches = matches_by_row_index.get(rec.row_index, [])
 
-        names: list[str] = []
-        emails: list[str] = []
-        phones: list[str] = []
-        source_files: list[str] = []
-
+        all_directors = []
+        source_files = []
         for m in matches:
             cf = company_files.get(m.source_file_id)
             if not cf:
                 continue
             source_files.append(cf.file_name)
-            for d in cf.directors:
-                names.append(d.name or "")
-                emails.append(d.email or "")
-                phones.append(d.phone or "")
+            all_directors.extend(cf.directors)
 
-        rows.append(
-            ConsolidatedRow(
-                company_name=rec.company_name,
-                director_name="; ".join(names),
-                director_email="; ".join(emails),
-                director_contact_numbers="; ".join(phones),
-                net_profit=rec.net_profit,
-                revenue=rec.revenue,
-                ebitda=rec.ebitda,
-                city=rec.city,
-                company_products=rec.company_products,
-                source_files="; ".join(source_files),
+        source_files_str = "; ".join(source_files)
+
+        if not all_directors:
+            rows.append(
+                ConsolidatedRow(
+                    company_name=rec.company_name,
+                    director_name="",
+                    director_email="",
+                    director_contact_numbers="",
+                    net_profit=rec.net_profit,
+                    revenue=rec.revenue,
+                    ebitda=rec.ebitda,
+                    city=rec.city,
+                    company_products=rec.company_products,
+                    source_files=source_files_str,
+                )
             )
-        )
+        else:
+            for d in all_directors:
+                rows.append(
+                    ConsolidatedRow(
+                        company_name=rec.company_name,
+                        director_name=d.name or "",
+                        director_email=d.email or "",
+                        director_contact_numbers=d.phone or "",
+                        net_profit=rec.net_profit,
+                        revenue=rec.revenue,
+                        ebitda=rec.ebitda,
+                        city=rec.city,
+                        company_products=rec.company_products,
+                        source_files=source_files_str,
+                    )
+                )
     return rows

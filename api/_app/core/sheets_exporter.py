@@ -16,14 +16,12 @@ def build_sheets_payload(
     final_rows = [FINAL_COLUMNS] + [
         [
             r.company_name,
-            r.director_name,
             r.director_email,
+            r.director_name,
             r.director_contact_numbers,
-            r.net_profit,
             r.revenue,
             r.ebitda,
-            r.city,
-            r.company_products,
+            r.net_profit,
         ]
         for r in consolidated_rows
     ]

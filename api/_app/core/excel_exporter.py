@@ -14,14 +14,12 @@ BODY_FONT = Font(name="Arial")
 
 FINAL_COLUMNS = [
     "Company Name",
-    "Director Name",
-    "Director Email",
-    "Director Contact Numbers",
-    "Net Profit",
-    "Revenue",
+    "Email",
+    "Name",
+    "Contact Number",
+    "Total Revenue *",
     "EBITDA",
-    "City",
-    "Company Products",
+    "PAT",
 ]
 
 VALIDATION_COLUMNS = [
@@ -80,16 +78,14 @@ def export_workbook(
     _write_header(ws_final, FINAL_COLUMNS)
     for r, row in enumerate(consolidated_rows, start=2):
         ws_final.cell(row=r, column=1, value=row.company_name).font = BODY_FONT
-        ws_final.cell(row=r, column=2, value=row.director_name).font = BODY_FONT
-        ws_final.cell(row=r, column=3, value=row.director_email).font = BODY_FONT
+        ws_final.cell(row=r, column=2, value=row.director_email).font = BODY_FONT
+        ws_final.cell(row=r, column=3, value=row.director_name).font = BODY_FONT
         c = ws_final.cell(row=r, column=4, value=row.director_contact_numbers)
         c.font = BODY_FONT
         c.number_format = "@"  # text format to preserve leading zeros / long digit strings
-        ws_final.cell(row=r, column=5, value=row.net_profit).font = BODY_FONT
-        ws_final.cell(row=r, column=6, value=row.revenue).font = BODY_FONT
-        ws_final.cell(row=r, column=7, value=row.ebitda).font = BODY_FONT
-        ws_final.cell(row=r, column=8, value=row.city).font = BODY_FONT
-        ws_final.cell(row=r, column=9, value=row.company_products).font = BODY_FONT
+        ws_final.cell(row=r, column=5, value=row.revenue).font = BODY_FONT
+        ws_final.cell(row=r, column=6, value=row.ebitda).font = BODY_FONT
+        ws_final.cell(row=r, column=7, value=row.net_profit).font = BODY_FONT
     _autosize(ws_final, FINAL_COLUMNS)
 
     ws_val = wb.create_sheet("Validation & Review")
