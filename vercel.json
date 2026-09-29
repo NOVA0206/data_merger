@@ -1,9 +1,42 @@
 {
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": ".",
+      "framework": "nextjs",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "api",
+          "format": "url",
+          "env": "API_URL"
+        }
+      ]
+    },
+    "api": {
+      "root": "api",
+      "framework": "fastapi",
+      "functions": {
+        "index.py": {
+          "maxDuration": 60
+        }
+      }
     }
   },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/advance-jobs",

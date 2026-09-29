@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "";
 
 function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
