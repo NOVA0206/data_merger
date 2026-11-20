@@ -90,9 +90,14 @@ export default function Home() {
     } catch (e) {
       const msg = (e as Error).message;
       const isNetworkError = msg === "Failed to fetch" || msg.includes("NetworkError");
+      const isLocal =
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
       setErrorMsg(
         isNetworkError
-          ? "Could not reach the backend API server. Make sure the FastAPI backend is running (e.g. uvicorn api.index:app --port 8000)."
+          ? isLocal
+            ? "Could not reach the backend API server. Make sure the FastAPI backend is running (e.g. uvicorn api.index:app --port 8000)."
+            : "Could not reach the backend API server (/api/auth/google/login). Check Vercel environment variables (NEXT_PUBLIC_API_URL should be blank for same-origin /api/*) and Vercel function logs."
           : `Could not start Google sign-in: ${msg}. If this is a fresh setup, confirm the backend's Google OAuth environment variables are configured, then try again.`
       );
       setSigningIn(false);

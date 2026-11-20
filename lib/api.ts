@@ -1,4 +1,14 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "";
+function getApiBase(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "";
+  if (typeof window !== "undefined") {
+    const isLocalHost =
+      window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    if (!isLocalHost && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configured)) {
+      return "";
+    }
+  }
+  return configured;
+}
 
 function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -13,7 +23,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (options.body) {
     defaultHeaders["Content-Type"] = "application/json";
   }
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${getApiBase()}${path}`, {
     ...options,
     headers: {
       ...defaultHeaders,
@@ -94,7 +104,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ source_id: sourceId, master_row_index: masterRowIndex }),
     }),
-  downloadUrl: (jobId: string) => `${API_BASE}/api/jobs/${jobId}/download`,
+  downloadUrl: (jobId: string) => `${getApiBase()}/api/jobs/${jobId}/download`,
   exportToSheets: (jobId: string) =>
     request<{ spreadsheet_url: string }>(`/api/jobs/${jobId}/export-to-sheets`, { method: "POST" }),
 };
