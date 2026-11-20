@@ -7,11 +7,16 @@ function authHeaders(): Record<string, string> {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const defaultHeaders: Record<string, string> = {
+    ...authHeaders(),
+  };
+  if (options.body) {
+    defaultHeaders["Content-Type"] = "application/json";
+  }
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
+      ...defaultHeaders,
       ...(options.headers || {}),
     },
   });

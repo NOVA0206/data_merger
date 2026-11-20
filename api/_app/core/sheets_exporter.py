@@ -3,7 +3,7 @@ mirroring the same 3 sheets as the Excel export, via DriveClient.create_spreadsh
 """
 from __future__ import annotations
 
-from .excel_exporter import FINAL_COLUMNS, MATCHING_LOG_COLUMNS, VALIDATION_COLUMNS
+from .excel_exporter import FINAL_COLUMNS, MATCHING_LOG_COLUMNS, VALIDATION_COLUMNS, row_to_final_values
 from .models import ConsolidatedRow, MatchRecord, ValidationIssue
 
 
@@ -13,18 +13,7 @@ def build_sheets_payload(
     match_records: list[MatchRecord],
     summary: dict,
 ) -> dict[str, list[list]]:
-    final_rows = [FINAL_COLUMNS] + [
-        [
-            r.company_name,
-            r.director_email,
-            r.director_name,
-            r.director_contact_numbers,
-            r.revenue,
-            r.ebitda,
-            r.net_profit,
-        ]
-        for r in consolidated_rows
-    ]
+    final_rows = [FINAL_COLUMNS] + [row_to_final_values(r) for r in consolidated_rows]
 
     validation_rows = [VALIDATION_COLUMNS] + [
         [i.issue_type, i.company_or_sheet_name, i.matched_company, i.problem, i.recommended_action, i.source_file, i.status]

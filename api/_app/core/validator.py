@@ -113,7 +113,12 @@ def run_validation(
             )
 
     # Missing-field checks on consolidated rows.
+    # Track company-level checks once per company (since consolidated_rows has one row per director).
+    seen_company_checks: set[str] = set()
+    directors_by_company: dict[str, list[str]] = {}
+
     for row in consolidated_rows:
+        company_key = _norm(row.company_name)
         if not row.director_name:
             issues.append(
                 ValidationIssue(
@@ -126,75 +131,77 @@ def run_validation(
                 )
             )
         else:
-            names = [n for n in row.director_name.split(";")]
-            phones = [p.strip() for p in row.director_contact_numbers.split(";")]
-            emails = [e.strip() for e in row.director_email.split(";")]
-            if any(p == "" for p in phones):
+            directors_by_company.setdefault(company_key, []).append(row.director_name.strip().upper())
+            if not row.director_contact_numbers.strip():
                 issues.append(
                     ValidationIssue(
                         issue_type="Missing Contact Number",
                         company_or_sheet_name=row.company_name,
                         matched_company=row.company_name,
-                        problem="One or more directors have no phone number on file.",
+                        problem=f"Director '{row.director_name}' has no phone number on file.",
                         recommended_action="Check source spreadsheet for that director.",
                         source_file=row.source_files,
                     )
                 )
-            if any(e == "" for e in emails):
+            if not row.director_email.strip():
                 issues.append(
                     ValidationIssue(
                         issue_type="Missing Email",
                         company_or_sheet_name=row.company_name,
                         matched_company=row.company_name,
-                        problem="One or more directors have no email on file.",
+                        problem=f"Director '{row.director_name}' has no email on file.",
                         recommended_action="Check source spreadsheet for that director.",
                         source_file=row.source_files,
                     )
                 )
-            dup_names = [n for n, c in Counter(n.strip().upper() for n in names if n.strip()).items() if c > 1]
-            if dup_names:
+
+        if company_key not in seen_company_checks:
+            seen_company_checks.add(company_key)
+            if row.net_profit is None or row.revenue is None or row.ebitda is None:
                 issues.append(
                     ValidationIssue(
-                        issue_type="Possible Duplicate Director",
+                        issue_type="Missing Financial Data",
                         company_or_sheet_name=row.company_name,
                         matched_company=row.company_name,
-                        problem=f"Director name(s) appear more than once: {', '.join(dup_names)}",
-                        recommended_action="Verify these are not the same person listed twice.",
-                        source_file=row.source_files,
+                        problem="One or more of Net Profit / Revenue / EBITDA is missing in the master sheet.",
+                        recommended_action="Check master sheet for this company's financial columns.",
+                        source_file="Master Sheet",
+                    )
+                )
+            if not row.city:
+                issues.append(
+                    ValidationIssue(
+                        issue_type="Missing City",
+                        company_or_sheet_name=row.company_name,
+                        matched_company=row.company_name,
+                        problem="City is missing in the master sheet.",
+                        recommended_action="Check master sheet for this company's city column.",
+                        source_file="Master Sheet",
+                    )
+                )
+            if not row.company_products:
+                issues.append(
+                    ValidationIssue(
+                        issue_type="Missing Company Products",
+                        company_or_sheet_name=row.company_name,
+                        matched_company=row.company_name,
+                        problem="Company products/business activity is missing in the master sheet.",
+                        recommended_action="Check master sheet for this company's products column.",
+                        source_file="Master Sheet",
                     )
                 )
 
-        if row.net_profit is None or row.revenue is None or row.ebitda is None:
+    for company_key, names in directors_by_company.items():
+        dup_names = [n for n, c in Counter(n for n in names if n).items() if c > 1]
+        if dup_names:
             issues.append(
                 ValidationIssue(
-                    issue_type="Missing Financial Data",
-                    company_or_sheet_name=row.company_name,
-                    matched_company=row.company_name,
-                    problem="One or more of Net Profit / Revenue / EBITDA is missing in the master sheet.",
-                    recommended_action="Check master sheet for this company's financial columns.",
-                    source_file="Master Sheet",
-                )
-            )
-        if not row.city:
-            issues.append(
-                ValidationIssue(
-                    issue_type="Missing City",
-                    company_or_sheet_name=row.company_name,
-                    matched_company=row.company_name,
-                    problem="City is missing in the master sheet.",
-                    recommended_action="Check master sheet for this company's city column.",
-                    source_file="Master Sheet",
-                )
-            )
-        if not row.company_products:
-            issues.append(
-                ValidationIssue(
-                    issue_type="Missing Company Products",
-                    company_or_sheet_name=row.company_name,
-                    matched_company=row.company_name,
-                    problem="Company products/business activity is missing in the master sheet.",
-                    recommended_action="Check master sheet for this company's products column.",
-                    source_file="Master Sheet",
+                    issue_type="Possible Duplicate Director",
+                    company_or_sheet_name=company_key,
+                    matched_company=company_key,
+                    problem=f"Director name(s) appear more than once: {', '.join(dup_names)}",
+                    recommended_action="Verify these are not the same person listed twice.",
+                    source_file="",
                 )
             )
 

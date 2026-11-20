@@ -54,6 +54,7 @@ def build_consolidated_rows(
                     city=rec.city,
                     company_products=rec.company_products,
                     source_files=source_files_str,
+                    master_raw=rec.raw,
                 )
             )
         else:
@@ -70,6 +71,17 @@ def build_consolidated_rows(
                         city=rec.city,
                         company_products=rec.company_products,
                         source_files=source_files_str,
+                        master_raw=rec.raw,
+                        din_or_dpin_pan=d.din_or_dpin_pan or "",
+                        din_status=d.din_status or "",
+                        dsc_status=d.dsc_status or "",
+                        director_address=d.address or "",
+                        director_designation=d.designation or "",
+                        appointment_at_current_designation_on=d.appointment_at_current_designation_on or "",
+                        originally_appointed_on=d.originally_appointed_on or "",
+                        cessation_date=d.cessation_date or "",
+                        shareholding_pct=d.shareholding_pct or "",
+                        director_remarks=d.remarks or "",
                     )
                 )
     return rows

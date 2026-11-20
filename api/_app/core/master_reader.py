@@ -1,6 +1,8 @@
 """Reads the master financial sheet and extracts CompanyRecord rows."""
 from __future__ import annotations
 
+from datetime import date, datetime
+
 import pandas as pd
 
 from .field_mapping import FieldMapping, resolve_field_mapping
@@ -17,8 +19,12 @@ REQUIRED_FIELDS = [
 
 
 def _clean_cell(value):
-    if pd.isna(value):
+    if value is None or pd.isna(value):
         return None
+    if isinstance(value, (pd.Timestamp, datetime, date)):
+        return value.strftime("%d/%m/%Y")
+    if hasattr(value, "item"):
+        value = value.item()
     if isinstance(value, str):
         v = value.strip()
         return v if v else None
@@ -59,12 +65,12 @@ def extract_company_records(
             "Pass an explicit override via overrides={'company_name': '<actual column>'}."
         )
 
-    for idx, row in df.iterrows():
+    for pos, (idx, row) in enumerate(df.iterrows()):
         name = _clean_cell(row.get(name_col))
         if not name:
             continue
         rec = CompanyRecord(
-            row_index=int(idx),
+            row_index=int(idx) if isinstance(idx, (int, float)) else pos,
             company_name=str(name).strip(),
             net_profit=_clean_cell(row.get(mapping.resolved.get("net_profit", ""))),
             revenue=_clean_cell(row.get(mapping.resolved.get("revenue", ""))),

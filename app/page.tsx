@@ -7,13 +7,32 @@ import SummaryCards from "@/components/SummaryCards";
 import MatchTable from "@/components/MatchTable";
 
 const DEFAULT_COLUMNS = [
-  "Company Name",
-  "Email",
-  "Name",
-  "Contact Number",
-  "Total Revenue *",
-  "EBITDA",
-  "PAT",
+  "Company Name", "CIN", "Pan", "City", "State", "Status", "Listing Status",
+  "Products", "Sector", "Whether Exporter", "Business Type", "Paid Up Capital",
+  "Financial Year", "Latest Balance Sheet", "Consolidated/Standalone",
+  "Total Revenue", "EBITDA", "PAT", "Networth", "Long-term Liabilities",
+  "Total Borrowings", "IEC Code", "IEC Category", "Ownership",
+  "Importer/Exporter?", "Date of Incorporation", "Total Open Charges",
+  "Consortium Finance Involved?", "Credit Rated?", "Latest Ratings",
+  "Total Revenue from Operations", "EBITDA %", "PAT %",
+  "Long-term Borrowings", "Short-term Borrowings", "Cash & Cash Equivalents",
+  "Current Investment", "Total Tangible Assets", "Fixed Assets",
+  "Revenue Growth %", "Finance Cost (% of Sales)", "Current Ratio",
+  "Receivables Days", "Inventory Days", "Total Debt/Equity", "Debt to EBITDA",
+  "Interest Coverage", "Growth in Fixed Assets (%)", "EBT Margins %",
+  "Emp Cost (% of Sales)", "Other Exp (% of Sales)", "RMC %", "ROE %",
+  "FA T/O", "Working Capital Turnover", "Long-term Debt/Equity",
+  "Deposits Matured but Not Claimed?",
+  "Deposits Matured and Claimed but Not Paid?",
+  "Financial Statement Qualified?", "CARO Applicable?", "BIFR?",
+  "Willful Defaulter under CIBIL?", "Willful Defaulter under Equifax?",
+  "Litigation?", "NCLT?", "SAT?", "Defaulter under MCA?",
+  "Company Email Address", "Company Telephone Number", "Company Website",
+  "Company Address", "Pin Code",
+  "NAME", "DIN OR DPIN (PAN)", "DIN STATUS", "DSC STATUS", "ADDRESS",
+  "DESIGNATION (CATEGORY)", "APPOINTMENT AT CURRENT DESIGNATION ON",
+  "ORIGINALLY APPOINTED ON", "CESSATION DATE", "% SHAREHOLDING",
+  "EMAIL ID", "PHONE NUMBER", "REMARKS",
 ];
 
 export default function Home() {
@@ -69,9 +88,12 @@ export default function Home() {
       const { url } = await api.googleLogin();
       window.location.href = url;
     } catch (e) {
+      const msg = (e as Error).message;
+      const isNetworkError = msg === "Failed to fetch" || msg.includes("NetworkError");
       setErrorMsg(
-        `Could not start Google sign-in: ${(e as Error).message}. ` +
-          "If this is a fresh setup, confirm the backend's Google OAuth environment variables are configured, then try again."
+        isNetworkError
+          ? "Could not reach the backend API server. Make sure the FastAPI backend is running (e.g. uvicorn api.index:app --port 8000)."
+          : `Could not start Google sign-in: ${msg}. If this is a fresh setup, confirm the backend's Google OAuth environment variables are configured, then try again.`
       );
       setSigningIn(false);
     }
@@ -185,10 +207,12 @@ export default function Home() {
         )}
 
         <div>
-          <h3 className="text-sm font-medium text-slate-700 mb-1">Output columns (default)</h3>
-          <div className="flex flex-wrap gap-2">
+          <h3 className="text-sm font-medium text-slate-700 mb-1">
+            Output columns ({DEFAULT_COLUMNS.length})
+          </h3>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 rounded-lg border border-slate-100 bg-slate-50/50">
             {DEFAULT_COLUMNS.map((c) => (
-              <span key={c} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
+              <span key={c} className="text-xs bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
                 {c}
               </span>
             ))}

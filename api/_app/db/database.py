@@ -6,6 +6,7 @@ avoid handing out dead connections after a cold start.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
@@ -49,7 +50,7 @@ def init_db() -> None:
 
 
 @contextmanager
-def session_scope() -> Session:
+def session_scope() -> Iterator[Session]:
     SessionLocal = get_sessionmaker()
     session = SessionLocal()
     try:

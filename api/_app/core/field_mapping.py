@@ -70,6 +70,16 @@ DIRECTOR_FIELD_SYNONYMS: dict[str, list[str]] = {
     "designation": ["designation (category)", "designation", "category"],
     "address": ["address", "residential address"],
     "linkedin": ["linkedin", "linkedin url", "linkedin profile"],
+    "din_or_dpin_pan": ["din or dpin (pan)", "din or dpin", "din/dpin", "din", "dpin", "pan"],
+    "din_status": ["din status"],
+    "dsc_status": ["dsc status"],
+    "appointment_at_current_designation_on": [
+        "appointment at current designation on", "current designation date",
+    ],
+    "originally_appointed_on": ["originally appointed on", "original appointment date"],
+    "cessation_date": ["cessation date"],
+    "shareholding_pct": ["% shareholding", "shareholding %", "shareholding"],
+    "remarks": ["remarks", "remark"],
 }
 
 
@@ -124,9 +134,9 @@ def resolve_field_mapping(
             result.resolved[lf] = overrides[lf]
             continue
 
-        synonyms = synonyms_map.get(lf, [])
+        field_synonyms = synonyms_map.get(lf, [])
         exact_hit = None
-        for syn in synonyms:
+        for syn in field_synonyms:
             if syn in header_norm_to_actual and not _is_excluded(lf, syn):
                 exact_hit = header_norm_to_actual[syn]
                 break
@@ -138,7 +148,7 @@ def resolve_field_mapping(
         # (handles trailing "*" / extra spaces in real headers not literally
         # listed as synonyms, e.g. "Total Revenue  * .1").
         substr_hit = None
-        for syn in synonyms:
+        for syn in field_synonyms:
             for norm, actual in header_norm_to_actual.items():
                 if syn and syn in norm and not _is_excluded(lf, norm):
                     substr_hit = actual
@@ -156,7 +166,7 @@ def resolve_field_mapping(
         for norm, actual in header_norm_to_actual.items():
             if _is_excluded(lf, norm):
                 continue
-            for syn in synonyms:
+            for syn in field_synonyms:
                 score = SequenceMatcher(None, syn, norm).ratio()
                 if score >= FUZZY_THRESHOLD:
                     candidates.append(actual)

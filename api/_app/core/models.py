@@ -44,6 +44,14 @@ class DirectorRecord:
     designation: str | None = None
     address: str | None = None
     linkedin: str | None = None
+    din_or_dpin_pan: str | None = None
+    din_status: str | None = None
+    dsc_status: str | None = None
+    appointment_at_current_designation_on: str | None = None
+    originally_appointed_on: str | None = None
+    cessation_date: str | None = None
+    shareholding_pct: str | None = None
+    remarks: str | None = None
 
 
 @dataclass
@@ -93,3 +101,14 @@ class ConsolidatedRow:
     city: object = None
     company_products: object = None
     source_files: str = ""
+    master_raw: dict = field(default_factory=dict)
+    din_or_dpin_pan: str = ""
+    din_status: str = ""
+    dsc_status: str = ""
+    director_address: str = ""
+    director_designation: str = ""
+    appointment_at_current_designation_on: str = ""
+    originally_appointed_on: str = ""
+    cessation_date: str = ""
+    shareholding_pct: str = ""
+    director_remarks: str = ""

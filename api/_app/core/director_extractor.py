@@ -82,6 +82,14 @@ def extract_directors(df: pd.DataFrame) -> list[DirectorRecord]:
     designation_col = mapping.resolved.get("designation")
     address_col = mapping.resolved.get("address")
     linkedin_col = mapping.resolved.get("linkedin")
+    din_col = mapping.resolved.get("din_or_dpin_pan")
+    din_status_col = mapping.resolved.get("din_status")
+    dsc_status_col = mapping.resolved.get("dsc_status")
+    appt_current_col = mapping.resolved.get("appointment_at_current_designation_on")
+    orig_appt_col = mapping.resolved.get("originally_appointed_on")
+    cessation_col = mapping.resolved.get("cessation_date")
+    shareholding_col = mapping.resolved.get("shareholding_pct")
+    remarks_col = mapping.resolved.get("remarks")
 
     directors: list[DirectorRecord] = []
     for _, row in df.iterrows():
@@ -97,6 +105,14 @@ def extract_directors(df: pd.DataFrame) -> list[DirectorRecord]:
                 designation=_clean(row.get(designation_col)) if designation_col else None,
                 address=_clean(row.get(address_col)) if address_col else None,
                 linkedin=_clean(row.get(linkedin_col)) if linkedin_col else None,
+                din_or_dpin_pan=_clean(row.get(din_col)) if din_col else None,
+                din_status=_clean(row.get(din_status_col)) if din_status_col else None,
+                dsc_status=_clean(row.get(dsc_status_col)) if dsc_status_col else None,
+                appointment_at_current_designation_on=_clean(row.get(appt_current_col)) if appt_current_col else None,
+                originally_appointed_on=_clean(row.get(orig_appt_col)) if orig_appt_col else None,
+                cessation_date=_clean(row.get(cessation_col)) if cessation_col else None,
+                shareholding_pct=_clean(row.get(shareholding_col)) if shareholding_col else None,
+                remarks=_clean(row.get(remarks_col)) if remarks_col else None,
             )
         )
     return directors

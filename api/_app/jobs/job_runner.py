@@ -92,6 +92,8 @@ def _run_scanning(job: Job, state: JobState, session: Session) -> None:
     job.status = "Scanning"
 
     if job.source_type == "local":
+        if not job.local_path:
+            raise ValueError("local_path is required for local jobs.")
         discovered = discover_local_folder(job.local_path)
         master_bytes_or_path = discovered.master_file_path
         file_refs = [
@@ -100,6 +102,8 @@ def _run_scanning(job: Job, state: JobState, session: Session) -> None:
         ]
         master_df = load_master_sheet(master_bytes_or_path)
     elif job.source_type == "drive":
+        if not job.drive_folder_id:
+            raise ValueError("drive_folder_id is required for drive jobs.")
         client = _get_drive_client(job, session)
         discovered = client.discover_folder(job.drive_folder_id)
         master_bytes = client.read_file_bytes(discovered.master_file)
@@ -157,6 +161,7 @@ def _run_processing_batch(job: Job, state: JobState, session: Session) -> None:
             else:
                 from ..core.drive_connector import DriveFileRef
 
+                assert client is not None
                 ref_obj = DriveFileRef(source_id, file_name, ref.get("mime_type", ""))
                 file_bytes = client.read_file_bytes(ref_obj)
                 df = load_company_sheet(io.BytesIO(file_bytes))
@@ -174,7 +179,7 @@ def _run_processing_batch(job: Job, state: JobState, session: Session) -> None:
 
 
 def _run_matching(job: Job, state: JobState) -> None:
-    master_records = [company_record_from_dict(d) for d in state.master_records]
+    master_records = [company_record_from_dict(d) for d in (state.master_records or [])]
     company_files = {k: company_file_from_dict(v) for k, v in (state.company_files or {}).items()}
 
     matcher = CompanyMatcher(master_records)
@@ -209,9 +214,9 @@ def _run_matching(job: Job, state: JobState) -> None:
 
 
 def _run_validating(job: Job, state: JobState) -> None:
-    master_records = [company_record_from_dict(d) for d in state.master_records]
+    master_records = [company_record_from_dict(d) for d in (state.master_records or [])]
     company_files = {k: company_file_from_dict(v) for k, v in (state.company_files or {}).items()}
-    match_records = [match_record_from_dict(d) for d in state.match_records]
+    match_records = [match_record_from_dict(d) for d in (state.match_records or [])]
 
     consolidated_rows = build_consolidated_rows(master_records, company_files, match_records)
     validation_issues, summary = run_validation(master_records, company_files, match_records, consolidated_rows)
@@ -224,9 +229,9 @@ def _run_validating(job: Job, state: JobState) -> None:
 
 
 def _run_exporting(job: Job, state: JobState, session: Session) -> None:
-    master_records = [company_record_from_dict(d) for d in state.master_records]
+    master_records = [company_record_from_dict(d) for d in (state.master_records or [])]
     company_files = {k: company_file_from_dict(v) for k, v in (state.company_files or {}).items()}
-    match_records = [match_record_from_dict(d) for d in state.match_records]
+    match_records = [match_record_from_dict(d) for d in (state.match_records or [])]
     consolidated_rows = build_consolidated_rows(master_records, company_files, match_records)
 
     from ..core.models import ValidationIssue

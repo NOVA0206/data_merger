@@ -29,9 +29,19 @@ from .jobs.job_runner import TERMINAL_STATUSES, advance_job
 
 app = FastAPI(title="Company Data Consolidation API")
 
+_cors_origins = [
+    o for o in {
+        settings.FRONTEND_URL.rstrip("/") if settings.FRONTEND_URL else "",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    }
+    if o
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL] if settings.FRONTEND_URL else ["*"],
+    allow_origins=_cors_origins or ["*"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -93,19 +103,34 @@ def google_callback(code: str, state: str):
     from google.oauth2 import id_token as google_id_token
     from google.auth.transport import requests as google_requests
 
-    info = google_id_token.verify_oauth2_token(creds.id_token, google_requests.Request(), settings.GOOGLE_CLIENT_ID)
+    info = google_id_token.verify_oauth2_token(
+        creds.id_token,
+        google_requests.Request(),
+        settings.GOOGLE_CLIENT_ID,
+        clock_skew_in_seconds=10,
+    )
     email = info["email"]
 
-    encrypted = credentials_to_encrypted_refresh_token(creds)
     with session_scope() as session:
         row = session.query(UserToken).filter(UserToken.user_email == email).one_or_none()
-        if row:
-            row.encrypted_refresh_token = encrypted
-        else:
-            session.add(UserToken(user_email=email, encrypted_refresh_token=encrypted))
+        if creds.refresh_token:
+            encrypted = credentials_to_encrypted_refresh_token(creds)
+            if row:
+                row.encrypted_refresh_token = encrypted
+            else:
+                session.add(UserToken(user_email=email, encrypted_refresh_token=encrypted))
+        elif not row:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Google did not return a refresh token on first sign-in. "
+                    "Revoke app access in your Google Account permissions and try again."
+                ),
+            )
 
     session_token = issue_session_token(email)
-    return RedirectResponse(f"{settings.FRONTEND_URL}/auth/callback#token={session_token}")
+    frontend_base = settings.FRONTEND_URL.rstrip("/")
+    return RedirectResponse(f"{frontend_base}/auth/callback#token={session_token}")
 
 
 @app.get("/api/me")
@@ -279,9 +304,9 @@ def export_to_sheets(job_id: str, request: Request):
         client = DriveClient(creds)
 
         state = job.state
-        master_records = [company_record_from_dict(d) for d in state.master_records]
+        master_records = [company_record_from_dict(d) for d in (state.master_records or [])]
         company_files = {k: company_file_from_dict(v) for k, v in (state.company_files or {}).items()}
-        match_records = [match_record_from_dict(d) for d in state.match_records]
+        match_records = [match_record_from_dict(d) for d in (state.match_records or [])]
         consolidated_rows = build_consolidated_rows(master_records, company_files, match_records)
 
         from .core.models import ValidationIssue

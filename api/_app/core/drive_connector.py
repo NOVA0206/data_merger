@@ -38,7 +38,7 @@ class DiscoveredDriveFolder:
 
 
 def _with_retry(fn, *args, **kwargs):
-    last_exc = None
+    last_exc: Exception | None = None
     for attempt in range(MAX_RETRIES):
         try:
             return fn(*args, **kwargs)
@@ -48,7 +48,9 @@ def _with_retry(fn, *args, **kwargs):
                 time.sleep(2**attempt)
                 continue
             raise
-    raise last_exc
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("Retry loop exited without a result or exception.")
 
 
 class DriveClient:

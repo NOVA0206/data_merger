@@ -7,6 +7,8 @@ access).
 """
 from __future__ import annotations
 
+from typing import cast
+
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 
@@ -53,7 +55,7 @@ def exchange_code_for_credentials(code: str, state: str) -> Credentials:
     flow = Flow.from_client_config(_client_config(), scopes=SCOPES, state=state)
     flow.redirect_uri = settings.GOOGLE_REDIRECT_URI
     flow.fetch_token(code=code)
-    return flow.credentials
+    return cast(Credentials, flow.credentials)
 
 
 def credentials_to_encrypted_refresh_token(creds: Credentials) -> str:

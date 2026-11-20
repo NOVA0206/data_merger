@@ -1,6 +1,8 @@
 """Writes the final consolidated workbook: 3 sheets, formatted, formula-free data dump."""
 from __future__ import annotations
 
+from typing import IO
+
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
@@ -12,15 +14,158 @@ HEADER_FILL = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="s
 HEADER_FONT = Font(name="Arial", bold=True, color="FFFFFF")
 BODY_FONT = Font(name="Arial")
 
-FINAL_COLUMNS = [
+COMPANY_COLUMNS = [
     "Company Name",
-    "Email",
-    "Name",
-    "Contact Number",
-    "Total Revenue *",
+    "CIN",
+    "Pan",
+    "City",
+    "State",
+    "Status",
+    "Listing Status",
+    "Products",
+    "Sector",
+    "Whether Exporter",
+    "Business Type",
+    "Paid Up Capital",
+    "Financial Year",
+    "Latest Balance Sheet",
+    "Consolidated/Standalone",
+    "Total Revenue",
     "EBITDA",
     "PAT",
+    "Networth",
+    "Long-term Liabilities",
+    "Total Borrowings",
+    "IEC Code",
+    "IEC Category",
+    "Ownership",
+    "Importer/Exporter?",
+    "Date of Incorporation",
+    "Total Open Charges",
+    "Consortium Finance Involved?",
+    "Credit Rated?",
+    "Latest Ratings",
+    "Total Revenue from Operations",
+    "EBITDA %",
+    "PAT %",
+    "Long-term Borrowings",
+    "Short-term Borrowings",
+    "Cash & Cash Equivalents",
+    "Current Investment",
+    "Total Tangible Assets",
+    "Fixed Assets",
+    "Revenue Growth %",
+    "Finance Cost (% of Sales)",
+    "Current Ratio",
+    "Receivables Days",
+    "Inventory Days",
+    "Total Debt/Equity",
+    "Debt to EBITDA",
+    "Interest Coverage",
+    "Growth in Fixed Assets (%)",
+    "EBT Margins %",
+    "Emp Cost (% of Sales)",
+    "Other Exp (% of Sales)",
+    "RMC %",
+    "ROE %",
+    "FA T/O",
+    "Working Capital Turnover",
+    "Long-term Debt/Equity",
+    "Deposits Matured but Not Claimed?",
+    "Deposits Matured and Claimed but Not Paid?",
+    "Financial Statement Qualified?",
+    "CARO Applicable?",
+    "BIFR?",
+    "Willful Defaulter under CIBIL?",
+    "Willful Defaulter under Equifax?",
+    "Litigation?",
+    "NCLT?",
+    "SAT?",
+    "Defaulter under MCA?",
+    "Company Email Address",
+    "Company Telephone Number",
+    "Company Website",
+    "Company Address",
+    "Pin Code",
 ]
+
+DIRECTOR_COLUMNS = [
+    "NAME",
+    "DIN OR DPIN (PAN)",
+    "DIN STATUS",
+    "DSC STATUS",
+    "ADDRESS",
+    "DESIGNATION (CATEGORY)",
+    "APPOINTMENT AT CURRENT DESIGNATION ON",
+    "ORIGINALLY APPOINTED ON",
+    "CESSATION DATE",
+    "% SHAREHOLDING",
+    "EMAIL ID",
+    "PHONE NUMBER",
+    "REMARKS",
+]
+
+FINAL_COLUMNS = COMPANY_COLUMNS + DIRECTOR_COLUMNS
+
+_TEXT_COLUMNS = {
+    "Company Telephone Number",
+    "Pin Code",
+    "DIN OR DPIN (PAN)",
+    "PHONE NUMBER",
+}
+
+_COMPANY_FALLBACKS = {
+    "Company Name": lambda r: r.company_name,
+    "City": lambda r: r.city,
+    "Products": lambda r: r.company_products,
+    "Total Revenue": lambda r: r.revenue,
+    "EBITDA": lambda r: r.ebitda,
+    "PAT": lambda r: r.net_profit,
+}
+
+
+def _norm_lookup_key(name: str) -> str:
+    s = " ".join(str(name).strip().lower().split())
+    if s.endswith("*"):
+        s = s[:-1].strip()
+    return s
+
+
+def row_to_final_values(row: ConsolidatedRow) -> list:
+    """Return the 85 cell values for one ConsolidatedRow in FINAL_COLUMNS order."""
+    raw_lookup: dict[str, object] = {}
+    for k, v in (row.master_raw or {}).items():
+        nk = _norm_lookup_key(k)
+        if nk not in raw_lookup:
+            raw_lookup[nk] = v
+
+    company_vals = []
+    for col in COMPANY_COLUMNS:
+        nk = _norm_lookup_key(col)
+        if nk in raw_lookup:
+            val = raw_lookup[nk]
+        elif col in _COMPANY_FALLBACKS:
+            val = _COMPANY_FALLBACKS[col](row)
+        else:
+            val = None
+        company_vals.append(val)
+
+    director_vals = [
+        row.director_name,
+        row.din_or_dpin_pan,
+        row.din_status,
+        row.dsc_status,
+        row.director_address,
+        row.director_designation,
+        row.appointment_at_current_designation_on,
+        row.originally_appointed_on,
+        row.cessation_date,
+        row.shareholding_pct,
+        row.director_email,
+        row.director_contact_numbers,
+        row.director_remarks,
+    ]
+    return company_vals + director_vals
 
 VALIDATION_COLUMNS = [
     "Issue Type",
@@ -69,23 +214,21 @@ def export_workbook(
     validation_issues: list[ValidationIssue],
     match_records: list[MatchRecord],
     summary: dict,
-    output_path: str,
+    output_path: str | IO[bytes],
 ) -> None:
     wb = Workbook()
 
     ws_final = wb.active
+    assert ws_final is not None
     ws_final.title = "Final Consolidated Data"
     _write_header(ws_final, FINAL_COLUMNS)
+    text_col_indices = {i for i, col in enumerate(FINAL_COLUMNS, start=1) if col in _TEXT_COLUMNS}
     for r, row in enumerate(consolidated_rows, start=2):
-        ws_final.cell(row=r, column=1, value=row.company_name).font = BODY_FONT
-        ws_final.cell(row=r, column=2, value=row.director_email).font = BODY_FONT
-        ws_final.cell(row=r, column=3, value=row.director_name).font = BODY_FONT
-        c = ws_final.cell(row=r, column=4, value=row.director_contact_numbers)
-        c.font = BODY_FONT
-        c.number_format = "@"  # text format to preserve leading zeros / long digit strings
-        ws_final.cell(row=r, column=5, value=row.revenue).font = BODY_FONT
-        ws_final.cell(row=r, column=6, value=row.ebitda).font = BODY_FONT
-        ws_final.cell(row=r, column=7, value=row.net_profit).font = BODY_FONT
+        for c_idx, val in enumerate(row_to_final_values(row), start=1):
+            cell = ws_final.cell(row=r, column=c_idx, value=val)
+            cell.font = BODY_FONT
+            if c_idx in text_col_indices:
+                cell.number_format = "@"  # text format to preserve leading zeros / long digit strings
     _autosize(ws_final, FINAL_COLUMNS)
 
     ws_val = wb.create_sheet("Validation & Review")
