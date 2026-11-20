@@ -149,20 +149,34 @@ class DriveClient:
         each value being a list of rows (first row = header). Returns the new
         spreadsheet's Drive file ID / URL-able ID.
         """
-        sheet_specs = [{"properties": {"title": name}} for name in sheets_data.keys()]
+        sheet_specs = [
+            {
+                "properties": {
+                    "title": name,
+                    "gridProperties": {
+                        "rowCount": max(len(rows), 1),
+                        "columnCount": max((len(r) for r in rows), default=1),
+                    },
+                }
+            }
+            for name, rows in sheets_data.items()
+        ]
         spreadsheet = _with_retry(
-            self.sheets.spreadsheets().create,
-            body={"properties": {"title": title}, "sheets": sheet_specs},
-        ).execute()
+            self.sheets.spreadsheets().create(
+                body={"properties": {"title": title}, "sheets": sheet_specs}
+            ).execute
+        )
         spreadsheet_id = spreadsheet["spreadsheetId"]
 
         data = []
         for sheet_name, rows in sheets_data.items():
-            data.append({"range": f"'{sheet_name}'!A1", "values": rows})
+            sanitized = [["" if cell is None else cell for cell in row] for row in rows]
+            data.append({"range": f"'{sheet_name}'!A1", "values": sanitized})
         _with_retry(
-            self.sheets.spreadsheets().values().batchUpdate,
-            spreadsheetId=spreadsheet_id,
-            body={"valueInputOption": "RAW", "data": data},
-        ).execute()
+            self.sheets.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"valueInputOption": "RAW", "data": data},
+            ).execute
+        )
 
         return spreadsheet_id

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, Response
 import io
 
 from .auth.google_oauth import (
@@ -268,13 +268,16 @@ def download_job(job_id: str):
         if job.status != "Completed":
             raise HTTPException(status_code=409, detail=f"Job is not complete (status: {job.status}).")
         output = session.get(JobOutput, job_id)
-        if not output:
+        if not output or output.file_bytes is None:
             raise HTTPException(status_code=404, detail="Output not found.")
-        return StreamingResponse(
-            io.BytesIO(output.file_bytes),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{output.file_name}"'},
-        )
+        file_name = output.file_name
+        file_bytes = bytes(output.file_bytes)
+
+    return Response(
+        content=file_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+    )
 
 
 @app.post("/api/jobs/{job_id}/export-to-sheets")
@@ -312,8 +315,11 @@ def export_to_sheets(job_id: str, request: Request):
         from .core.models import ValidationIssue
 
         validation_issues = [ValidationIssue(**d) for d in (state.validation_issues or [])]
-        payload = build_sheets_payload(consolidated_rows, validation_issues, match_records, state.summary or {})
-        spreadsheet_id = client.create_spreadsheet_from_rows("Consolidated Company Data", payload)
+        try:
+            payload = build_sheets_payload(consolidated_rows, validation_issues, match_records, state.summary or {})
+            spreadsheet_id = client.create_spreadsheet_from_rows("Consolidated Company Data", payload)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=502, detail=f"Failed to export to Google Sheets: {exc}") from exc
 
     return {"spreadsheet_url": f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"}
 
